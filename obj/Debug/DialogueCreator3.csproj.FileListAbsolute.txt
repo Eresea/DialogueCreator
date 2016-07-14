@@ -1,0 +1,16 @@
+c:\users\eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\DialogueCreator3.exe.config
+c:\users\eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\DialogueCreator3.exe
+c:\users\eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\DialogueCreator3.pdb
+c:\users\eresea\documents\visual studio 2015\Projects\DialogueCreator3\obj\Debug\DialogueCreator3.Form1.resources
+c:\users\eresea\documents\visual studio 2015\Projects\DialogueCreator3\obj\Debug\DialogueCreator3.Properties.Resources.resources
+c:\users\eresea\documents\visual studio 2015\Projects\DialogueCreator3\obj\Debug\DialogueCreator3.csproj.GenerateResource.Cache
+c:\users\eresea\documents\visual studio 2015\Projects\DialogueCreator3\obj\Debug\DialogueCreator3.exe
+c:\users\eresea\documents\visual studio 2015\Projects\DialogueCreator3\obj\Debug\DialogueCreator3.pdb
+C:\Users\Eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\Microsoft.GLEE.dll
+C:\Users\Eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\Microsoft.GLEE.Drawing.dll
+C:\Users\Eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\Microsoft.GLEE.GraphViewerGDI.dll
+C:\Users\Eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\Microsoft.GLEE.pdb
+C:\Users\Eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\Microsoft.GLEE.Drawing.pdb
+C:\Users\Eresea\documents\visual studio 2015\Projects\DialogueCreator3\bin\Debug\Microsoft.GLEE.GraphViewerGDI.pdb
+C:\Users\Eresea\documents\visual studio 2015\Projects\DialogueCreator3\obj\Debug\DialogueCreator3.csprojResolveAssemblyReference.cache
+C:\Users\Eresea\documents\visual studio 2015\Projects\DialogueCreator3\obj\Debug\DialogueCreator3.Form2.resources
