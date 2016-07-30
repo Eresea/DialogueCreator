@@ -40,8 +40,8 @@ namespace DialogueCreator3
 
         public void Reset()
         {
-            SelectedNodeAnswer.Value.VisualBlock.Deselect(true, true);
-            SelectedNodeQuestion.Value.VisualBlock.Deselect(false, true);
+            SelectedNodeAnswer.Value.VisualBlock.Deselect(-1, true);
+            SelectedNodeQuestion.Value.VisualBlock.Deselect(-1, true);
             SelectedNodeAnswer = new KeyValuePair<int, node>(-1, null);
             SelectedNodeQuestion = new KeyValuePair<int, node>(-1, null);
         }
@@ -154,7 +154,7 @@ namespace DialogueCreator3
         public void Delink(object sender, EventArgs e)
         {
             Block b = (Block)sender;
-            b.Deselect((b.selected > 0), false);
+            b.Deselect(-1, false);
             node tmp = N.Find(b.ID);
             if(tmp == null)
             {
@@ -438,8 +438,9 @@ namespace DialogueCreator3
             VisualBlock = new Block();
             VisualBlock.Location = p;
             VisualBlock.Size = s;
-            Form.Controls.Add(VisualBlock);
             VisualBlock.ID = ID;
+            VisualBlock.Init();
+            Form.Controls.Add(VisualBlock);
             return VisualBlock;
 
         }
@@ -473,7 +474,7 @@ namespace DialogueCreator3
             }
             else
             {
-                NextNodes[Answer - 1].VisualBlock.Deselect(true, false);
+                NextNodes[Answer - 1].VisualBlock.Deselect(Answer-1, false);
                 NextNodes[Answer - 1] = Second; // Check if it already has a question, if yes add the old one to the Inactive nodes
                 Answers[Answer - 1] = Prompt.ShowDialog("Answer", "");
             }
@@ -489,7 +490,7 @@ namespace DialogueCreator3
             }
             else
             {
-                NextNodes[Answer - 1].VisualBlock.Deselect(true, false);
+                NextNodes[Answer - 1].VisualBlock.Deselect(Answer-1, false);
                 NextNodes[Answer - 1] = Second; // Check if it already has a question, if yes add the old one to the Inactive nodes
             }
             Second.Parent = this;
@@ -533,7 +534,7 @@ namespace DialogueCreator3
             {
                 for (int i = 0; i < Parent.NextNodes.Count(); i++)
                 {
-                    if (Parent.NextNodes[i].ID == ID) { Parent.NextNodes.RemoveAt(i); Parent.Answers.RemoveAt(i); Parent.VisualBlock.Deselect(true, false); break; }
+                    if (Parent.NextNodes[i].ID == ID) { Parent.NextNodes.RemoveAt(i); Parent.Answers.RemoveAt(i); Parent.VisualBlock.Deselect(i, false); break; }
                 }
             }
             VisualBlock.Delete();

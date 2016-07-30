@@ -10,6 +10,123 @@ using System.Windows.Forms;
 
 namespace DialogueCreator3
 {
+    public enum NodeState
+    {
+        None,
+        Hovered,
+        Clicked,
+        ClickState
+    }
+
+    public class Node
+    {
+        public bool bCondition = false;
+        public string Condition;
+
+        private NodeState _State;
+        public NodeState State // State of the node (clicked etc... (basically, color))
+        {
+            get { return _State; }
+            set
+            {
+                if (value == _State) return;
+                _State = value;
+                //ReRun draw
+            }
+        }
+
+        public bool Input;
+
+        private int _index;
+        private int index // Index in order of (input/output)
+        {
+            get { return _index; }
+            set
+            {
+                if (value == _index) return;
+                _index = value;
+            }
+        }
+
+        public Block parent;
+        public int Count = 1;
+
+        public Node(int nb, bool Answer, Block b)
+        {
+            index = nb;
+            Input = !Answer;
+            State = NodeState.None;
+            parent = b;
+            Count = b.Nodes.Count()-1;
+        }
+
+        public void Hover(bool IsHovered)
+        {
+            if(IsHovered) // Making it hover now
+            {
+                if (State != NodeState.ClickState && State != NodeState.Clicked) State = NodeState.Hovered;
+            }
+            else // Stopping the hover now
+            {
+                if (State == NodeState.Hovered) State = NodeState.None;
+            }
+        }
+
+        public KeyValuePair<Point,Color> Run(ref bool hasCondition)
+        {
+            //Returns if it is hovered etc...
+            //parent.Bounds
+            Count = parent.Nodes.Count()-2;
+            // Find index of THIS ? (Not necessary if we don't switch orders)
+
+            Rectangle nodePoint = parent.ClientRectangle;
+            nodePoint.X = 0;
+            nodePoint.Y += parent.ClientRectangle.Height / 2 - 5;
+            nodePoint.Size = new Size(10, 10);
+            Color penColor = Color.Red;
+
+            hasCondition = bCondition;
+            switch(State)
+            {
+                case NodeState.Clicked:
+                    penColor = Color.Blue; // Or yellow
+                    break;
+                case NodeState.ClickState:
+                    penColor = Color.Yellow;
+                    break;
+                case NodeState.Hovered:
+                    penColor = Color.Green;
+                    break;
+                case NodeState.None:
+                    penColor = Color.Red;
+                    break;
+            }
+                switch (index+1)
+                {
+                case 0:
+                    return new KeyValuePair<Point, Color>(nodePoint.Location, penColor);
+                    case 1:
+                        nodePoint.X = parent.ClientRectangle.Width - 10;
+                        nodePoint.Y = parent.ClientRectangle.Height - 55 + ((Count- (index + (index - 1))) * 10);
+                    return new KeyValuePair<Point, Color>(nodePoint.Location, penColor);
+                    case 2:
+                        nodePoint.Y = parent.ClientRectangle.Height - 55 + ((Count - (index + (index - 1))) * 10);
+                    return new KeyValuePair<Point, Color>(nodePoint.Location, penColor);
+                    case 3:
+                        nodePoint.Y = parent.ClientRectangle.Height - 55 + ((Count - (index + (index - 1))) * 10);
+                    return new KeyValuePair<Point, Color>(nodePoint.Location, penColor);
+                    case 4:
+                        nodePoint.Y = parent.ClientRectangle.Height - 55 + ((Count - (index + (index - 1))) * 10);
+                    return new KeyValuePair<Point, Color>(nodePoint.Location, penColor);
+                    case 5:
+                        nodePoint.Y = parent.ClientRectangle.Height - 55 + ((Count - (index + (index - 1))) * 10);
+                    return new KeyValuePair<Point, Color>(nodePoint.Location, penColor);
+                }
+            return new KeyValuePair<Point, Color>(new Point(), Color.Black);
+        }
+
+    }
+
     public partial class Block : Control
     {
 
@@ -36,11 +153,6 @@ namespace DialogueCreator3
                 Invalidate();
             }
         }
-
-        private bool Dragging_Output1 = false;
-        private bool Dragging_Output2 = false;
-
-        private bool Dragging_Input = false;
 
         private Point _startPoint = new Point(0,0);
         private Point startPoint
@@ -168,7 +280,13 @@ namespace DialogueCreator3
             }
         }
 
-        private int _nbAnswers = 1;
+        public List<Node> Nodes;
+        private List<bool> Conditions;
+        public Node InputNode;
+        private NodeState InputNodeState;
+        private List<NodeState> NodeStates;
+
+        private int _nbAnswers = 0;
         [Description("Number of Answer"),
             Category("Functionality"),
             DefaultValue(typeof(int), "1"),
@@ -181,7 +299,31 @@ namespace DialogueCreator3
             {
                 if (_nbAnswers == value) return;
                 _nbAnswers = value;
+                updateNodes(value);
                 Invalidate();
+            }
+        }
+
+        private void updateNodes(int number)
+        {
+            if (number != Nodes.Count())
+            {
+
+                for(int i=Nodes.Count();i<number;i++)
+                {
+                    Nodes.Add(new Node(i, true, this)); // Insert the new node //ISSUE HERE (NO NODES BY DEFAULT)
+                    NodeStates.Add(NodeState.None);
+                    bool Condition = false;
+                    PosColors.Add(Nodes.Last().Run(ref Condition));
+                    Conditions.Add(Condition);
+                }
+
+                if(number < Nodes.Count()) Nodes.RemoveRange(number, Nodes.Count - number); //Remove nodes that aren't used anymore
+
+                foreach(Node n in Nodes)
+                {
+                    n.Count = number;
+                }
             }
         }
 
@@ -201,14 +343,35 @@ namespace DialogueCreator3
 
         private bool moveable = false;
 
-        public void Deselect(bool Answer, bool Linked)
+        public void Deselect(int index, bool Linked)
         {
             if (Linked)
             {
-                if(Answer) selected = -2;
-                else selected = -3;
+                if(index == -1)
+                {
+                    if (SelectedNode == 0) InputNode.State = NodeState.ClickState;
+                    else
+                    {
+                        Nodes[SelectedNode - 1].State = NodeState.ClickState;
+                    }
+                }
+                else if (index == 0) InputNode.State = NodeState.ClickState;
+                else Nodes[index - 1].State = NodeState.ClickState;
             }
-            else selected = 0;
+            else
+            {
+                if(index == -1)
+                {
+                    if(InputNode != null) InputNode.State = NodeState.None;
+                    foreach(Node n in Nodes)
+                    {
+                        n.State = NodeState.None;
+                    }
+                }
+                else if (index == 0) InputNode.State = NodeState.None;
+                else Nodes[index - 1].State = NodeState.None;
+            }
+            //Invalidate();
         }
 
         public event EventHandler SelectedAnswer; //Event of selected Answer
@@ -216,95 +379,76 @@ namespace DialogueCreator3
         public event EventHandler Delink;
 
         private int OverNode(MouseEventArgs e)
-        {
+        {                   // ISSUES with X and Y not coordinated properly (Might be due to Paint Location != HoverLocation)
             for (int i = 0; i < nbAnswers + 1; i++)
             {
                 int X = 0;
                 int Y = ClientRectangle.Height / 2 - 5;
-
-                switch (i)
+                if(ID != 0)
                 {
-                    case 0:
-                        if (e.X > X - 0 && e.X < X + 9 && e.Y > Y - 10 && e.Y < Y + 10) return 0;
+                    X = InputPosColor.Key.X;
+                    Y = InputPosColor.Key.Y;
+                    if (e.X > X && e.X < X + 9 && e.Y > Y - 10 && e.Y < Y + 10) return 0; // Over input
+                }
 
-                        break;
-                    case 1:
-                        X = ClientRectangle.Width - 10;
-                        Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (e.X > X - 0 && e.X < X + 9 && e.Y > Y - 10 && e.Y < Y + 10) return 1;
-
-                        break;
-                    case 2:
-                        Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (e.X > X - 0 && e.X < X + 9 && e.Y > Y - 10 && e.Y < Y + 10) return 2;
-
-                        break;
-                    case 3:
-                        Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (e.X > X - 0 && e.X < X + 9 && e.Y > Y - 10 && e.Y < Y + 10) return 3;
-
-                        break;
-                    case 4:
-                        Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (e.X > X - 0 && e.X < X + 9 && e.Y > Y - 10 && e.Y < Y + 10) return 4;
-
-                        break;
-                    case 5:
-                        Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (e.X > X - 0 && e.X < X + 9 && e.Y > Y - 10 && e.Y < Y + 10) return 5;
-
-                        break;
+                for(int j=0;j<PosColors.Count();j++)
+                {
+                    X = PosColors[j].Key.X;
+                    Y = PosColors[j].Key.Y;
+                    if (e.X > X && e.X < X + 9 && e.Y > Y - 10 && e.Y < Y + 10) return j+1; // Over output
                 }
             }
 
             return -1;
         }
 
+        private List<KeyValuePair<Point,Color>> PosColors;
+        private KeyValuePair<Point, Color> InputPosColor;
+
         protected override void OnMouseMove(MouseEventArgs e)
         {
             Hovering = true;
-            /*Dragging_Output1 = ((e.X > ClientRectangle.Width - 10 && e.X < ClientRectangle.Width+10 && e.Y > ClientRectangle.Height/2-5 && e.Y < ClientRectangle.Height/2+5));
-            if(ID != 0) Dragging_Input = (e.X > 0 && e.X < 10 && e.Y > ClientRectangle.Height / 2 - 5 && e.Y < ClientRectangle.Height / 2 + 5);
-            if (Dragging_Output1 && Pressed) endPoint = e.Location;
-            else endPoint = new Point(0, 0);*/
 
-            int temp = OverNode(e);
+            int temp = OverNode(e); // Returns hovered element 'index' (or -1)
             if (selectedTemp > -1)//On hover déjà un node
             {
-                if(selectedTemp != temp) //Différent de celui d'avant
+                if (selectedTemp != temp) //Différent de celui d'avant
                 {
-                    if (temp < 1) selected -= (int)Math.Pow((double)2, (double)selectedTemp); // Remove the previous selection
-                    else // Not same hovered as before
+                    if (selectedTemp == 0) InputNode.Hover(false);
+                    else
                     {
-                        selected -= (int)Math.Pow(2.0, (double)selectedTemp); //Remove previous selection
+                        Nodes[selectedTemp - 1].Hover(false);
                     }
+                    //Removed last hovered (Handle clickedState ?) (Good idea to change to a ChangeState function)
                 }
             }
-            else // Nouveau hover
+
+            TTip.Show(TipText, this);
+
+            if (temp == 0) InputNode.Hover(true); //Hovering Input
+            else if(temp > 0) // Hovering an output
             {
-                switch (temp)
+                Nodes[temp - 1].Hover(true);
+            }
+            if (selectedTemp != temp) Invalidate();
+            selectedTemp = temp;
+
+            bool Condition = false;
+
+            if (ID != 0 && InputNode != null)
+            {
+                InputPosColor = InputNode.Run(ref Condition);
+            }
+
+            if (PosColors != null)
+            {
+                for (int i = 0; i < nbAnswers; i++) // Returns the colors and positions to draw
                 {
-                    case 0: //Over Input
-                        if (selected % 2 == 0) selected += 1;
-                        break;
-                    case 1: //Over Output1
-                        if (selected % 4 < 2) selected += 2;
-                        break;
-                    case 2: //Over Output2
-                        if (selected % 8 < 4) selected += 4;
-                        break;
-                    case 3: //Over Output3
-                        if (selected % 16 < 8) selected += 8;
-                        break;
-                    case 4: //Over Output4
-                        if (selected % 32 < 16) selected += 16;
-                        break;
-                    case 5: //Over Output5
-                        if (selected % 64 < 32) selected += 32;
-                        break;
+                    Condition = false;
+                    PosColors[i] = Nodes[i].Run(ref Condition);
+                    Conditions[i] = Condition;
                 }
             }
-            selectedTemp = temp;
 
             if (moveable) this.Location = new Point(Location.X + e.X-50, Location.Y + e.Y-50);
         }
@@ -314,8 +458,27 @@ namespace DialogueCreator3
             Hovering = false;
             if (!Pressed)
             {
-                Dragging_Output1 = false;
-                Dragging_Input = false;
+                //If only hovered, set to None
+            }
+            if(selectedTemp > -1) // Smthg hovered (NOT WORKING) (PBBLY because move is called later, use bHovering to regulate this)
+            {
+                TTip.Hide(this); // Hides the Tooltip whatever its state
+                bool Condition = false;
+                if(selectedTemp == 0)
+                {
+                    InputNode.Hover(false);
+                    InputNodeState = InputNode.State;
+                    InputPosColor = InputNode.Run(ref Condition);
+                }
+                else
+                {
+                    Nodes[selectedTemp - 1].Hover(false);
+                    NodeStates[selectedTemp - 1] = Nodes[selectedTemp -1].State;
+                    PosColors[selectedTemp - 1] = Nodes[selectedTemp - 1].Run(ref Condition);
+                    Conditions[selectedTemp - 1] = Condition;
+                }
+
+                Invalidate();
             }
         }
 
@@ -327,33 +490,14 @@ namespace DialogueCreator3
 
                 if (selectedTemp > -1) // If a node is hovered
                 {
-                    selectedTemp = -1;
+
                     //SelectedNode = -1;
-                    bool done = false;
-                    for (int i = 0; i < nbAnswers + 1 && !done; i++)
-                    {
-                        switch (i)
-                        {
-                            case 0:
-                                if (selected % 2 == 1) { SelectedNode = 0; done = true; }
-                                break;
-                            case 1:
-                                if (selected % 4 > 1) { SelectedNode = 1; done = true; }
-                                break;
-                            case 2:
-                                if (selected % 8 > 3) { SelectedNode = 2; done = true; }
-                                break;
-                            case 3:
-                                if (selected % 16 > 7) { SelectedNode = 3; done = true; }
-                                break;
-                            case 4:
-                                if (selected % 32 > 15) { SelectedNode = 4; done = true; }
-                                break;
-                            case 5:
-                                if (selected % 64 > 31) { SelectedNode = 5; done = true; }
-                                break;
-                        }
-                    }
+                    if (selectedTemp == 0) InputNodeState = NodeState.Clicked;
+                    else NodeStates[selectedTemp - 1] = NodeState.Clicked;
+                    SelectedNode = selectedTemp;
+
+                    selectedTemp = -1;
+
                     if (Control.ModifierKeys == Keys.Alt) this.Delink(this, e);
                     else
                     {
@@ -365,27 +509,27 @@ namespace DialogueCreator3
                     moveable = true;
                     Pressed = true;
                 }
-                /*if (Dragging_Output1)
-                {
-                    //if (startPoint == new Point(0, 0)) startPoint = e.Location;
-                    selected = 1;
-                    if (Control.ModifierKeys == Keys.Alt)
-                    {
-                        this.Delink(this, e);
-                    }
-                    else this.SelectedAnswer(this, e);
-                }
-                else if (Dragging_Input)
-                {
-                    selected = -1;
-                    if (Control.ModifierKeys == Keys.Alt)
-                    {
-                        this.Delink(this, e);
-                    }
-                    else this.SelectedQuestion(this, e);
-                }
-                else moveable = true;*/
             }
+        }
+
+        private ToolTip TTip;
+        private string TipText;
+
+        public void Init()
+        {
+            PosColors = new List<KeyValuePair<Point, Color>>();
+            Nodes = new List<Node>();
+            NodeStates = new List<NodeState>();
+            Conditions = new List<bool>();
+            TTip = new ToolTip();
+            TipText = "Testing";
+            if (ID != 0)
+            {
+                InputNode = new Node(-1, false, this);
+                InputNodeState = NodeState.None;
+            }
+            nbAnswers = 1;
+            
         }
 
         protected override void OnMouseUp(MouseEventArgs e)
@@ -431,71 +575,15 @@ namespace DialogueCreator3
                 gfx.DrawRectangle(new Pen(Color.Blue, 1.0f), rc);
             }
 
-            for(int i=0;i<nbAnswers+1;i++)
+            if(ID != 0)
             {
-                Rectangle nodePoint = ClientRectangle;
-                nodePoint.X = 0;
-                nodePoint.Y += ClientRectangle.Height / 2 - 5;
-                nodePoint.Size = new Size(10, 10);
-                switch (i)
+                gfx.FillRectangle(new SolidBrush(InputPosColor.Value), new Rectangle(InputPosColor.Key, new Size(10, 10)));
+            }
+            if(PosColors != null)
+            {
+                foreach (KeyValuePair<Point, Color> a in PosColors)
                 {
-                    case 0:
-                        if(ID !=0) // Do you have to draw the input ?
-                        {
-                            if (selected % 2 == 1) // Is the input selected ?
-                            {
-                                if (selectedTemp == 0) gfx.FillRectangle(new SolidBrush(Color.Green), nodePoint); //Is it selected temporarily ?
-                                else gfx.FillRectangle(new SolidBrush(Color.Yellow), nodePoint); // Is it selected yellow ?
-                            }
-                            else gfx.FillRectangle(new SolidBrush(Color.Red), nodePoint); // Not selected
-                        }
-                        break;
-                    case 1:
-                        nodePoint.X = ClientRectangle.Width - 10;
-                        nodePoint.Y = ClientRectangle.Height - 55+((nbAnswers - (i + (i - 1))) * 10);
-                        if(selected%4 > 1) // Is the input selected ?
-                        {
-                            if(selectedTemp == 1) gfx.FillRectangle(new SolidBrush(Color.Green), nodePoint); //Is it selected temporarily ?
-                            else gfx.FillRectangle(new SolidBrush(Color.Yellow), nodePoint); // Is it selected yellow ?
-                        }
-                        else gfx.FillRectangle(new SolidBrush(Color.Red), nodePoint); // Not selected
-                        break;
-                    case 2:
-                        nodePoint.Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (selected % 8 > 3) // Is the input selected ?
-                        {
-                            if (selectedTemp == 2) gfx.FillRectangle(new SolidBrush(Color.Green), nodePoint); //Is it selected temporarily ?
-                            else gfx.FillRectangle(new SolidBrush(Color.Yellow), nodePoint); // Is it selected yellow ?
-                        }
-                        else gfx.FillRectangle(new SolidBrush(Color.Red), nodePoint); // Not selected
-                        break;
-                    case 3:
-                        nodePoint.Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (selected % 16 > 7) // Is the input selected ?
-                        {
-                            if (selectedTemp == 3) gfx.FillRectangle(new SolidBrush(Color.Green), nodePoint); //Is it selected temporarily ?
-                            else gfx.FillRectangle(new SolidBrush(Color.Yellow), nodePoint); // Is it selected yellow ?
-                        }
-                        else gfx.FillRectangle(new SolidBrush(Color.Red), nodePoint); // Not selected
-                        break;
-                    case 4:
-                        nodePoint.Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (selected % 32 > 15) // Is the input selected ?
-                        {
-                            if (selectedTemp == 4) gfx.FillRectangle(new SolidBrush(Color.Green), nodePoint); //Is it selected temporarily ?
-                            else gfx.FillRectangle(new SolidBrush(Color.Yellow), nodePoint); // Is it selected yellow ?
-                        }
-                        else gfx.FillRectangle(new SolidBrush(Color.Red), nodePoint); // Not selected
-                        break;
-                    case 5:
-                        nodePoint.Y = ClientRectangle.Height - 55 + ((nbAnswers - (i + (i - 1))) * 10);
-                        if (selected % 64 > 31) // Is the input selected ?
-                        {
-                            if (selectedTemp == 5) gfx.FillRectangle(new SolidBrush(Color.Green), nodePoint); //Is it selected temporarily ?
-                            else gfx.FillRectangle(new SolidBrush(Color.Yellow), nodePoint); // Is it selected yellow ?
-                        }
-                        else gfx.FillRectangle(new SolidBrush(Color.Red), nodePoint); // Not selected
-                        break;
+                    gfx.FillRectangle(new SolidBrush(a.Value), new Rectangle(a.Key, new Size(10, 10)));
                 }
             }
 
