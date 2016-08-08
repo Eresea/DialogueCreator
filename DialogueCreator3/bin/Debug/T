@@ -1,0 +1,2 @@
+Begin:{X=0, Y=150},Graph.Node|(Label:BeginQuestion,False,False),(Label:1,False,True),(Label:2,False,True:1/0),(Label:3,False,True),(Label:4,False,True),(Label:5,False,True)
+Event:{X=268, Y=89,26953},Graph.Node|(DropDown:Close,True:0/2,True)
