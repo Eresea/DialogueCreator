@@ -16,7 +16,7 @@ namespace DialogueCreator3
 {
 	public partial class ExampleForm : Form
 	{
-        string[] Events = { "Close", "AcceptQuest", "AdvanceQuest", "FinishQuestion", "CustomEvent" };
+        string[] Events = { "Close", "AcceptQuest", "AdvanceQuest", "FinishQuest", "CustomEvent" };
         Node BeginNode;
         bool SaveOnline = false;
 		public ExampleForm()
@@ -173,37 +173,315 @@ namespace DialogueCreator3
 
         private void button1_Click(object sender, EventArgs e)
         {
-            Clipboard.SetText(Run(BeginNode));
+            TreeNode Tree = Run3(BeginNode, null, -1);
+
+            Clipboard.SetText("(" + Tree.process() + ")"); // Pb avec les events (ordre et profondeur de retour)
         }
 
-        private string Run(Node n)
+        struct nodeStructure // Structure to serialize the data from nodes to text
+        {
+            public int ID;
+            public string Data;
+            public List<string> Answers;
+            public List<int> AnswersIDs;
+            public List<int> itemIDs;
+
+            public nodeStructure(int a, string b, List<string> c, List<int> d, List<int> e)
+            {
+                ID = a;
+                Data = b;
+                Answers = c;
+                AnswersIDs = d;
+                itemIDs = e;
+            }
+        }
+
+        private Node prevNextNode(NodeConnection nc, bool next, ref int id)
+        {
+            if(next)
+            {
+                id = 0;
+                
+                if(nc.To.Node.Title == "") return nc.To.Node;
+                else
+                {
+                    if (nc.To.Node.Title == "Condition") return prevNextNode(nc.To.Node.Connections.ElementAt(1), next,ref id);
+                    return prevNextNode(nc.To.Node.Connections.ElementAt(0), next,ref id);
+                }
+            }
+            else
+            {
+                id = nc.From.Node.Connections.ToList().IndexOf(nc);
+                if (nc.To.Node.Title == "") return nc.From.Node;
+                else
+                {
+                    return prevNextNode(nc.From.Node.Connections.ElementAt(0), next,ref id);
+                }
+            }
+        }
+
+        private List<Node> PreviousQuestion(NodeConnector nc, ref List<int> i)
+        {
+            List<Node> tmp = new List<Node>();
+
+            //i = nc.Node.Connections.ToList().IndexOf(nc.Connectors.ElementAt(0)); //Not sure at all
+            if (nc.Node.Title != "If" && nc.Node.Title != "Event") // Si Le node est une question
+            {
+                    tmp.Add(nc.Node);//Ajoute le node à la liste
+                    foreach (NodeItem ni in nc.Node.Items) // Pour chaque item
+                    {
+                        if (ni.Output == nc) // Si l'item est connecté à notre Connector
+                        {
+                            i.Add(nc.Node.Items.ToList().IndexOf(ni)); //Ajoute l'index de l'item aux indexs
+                            break;
+                        }
+                    }
+
+                foreach(Node n in tmp)
+                {
+                    MessageBox.Show(((NodeTextBoxItem)n.Items.ElementAt(0)).Text + " is linked with " + i.ElementAt(tmp.IndexOf(n)).ToString());
+                }
+                return tmp;
+            }
+            //Sinon, pour chaque connectors
+            for(int j=0;j<nc.Node.Connections.Count();j++) // Doesn't actually take the previous Node's from connection
+            {
+                if (nc.Node.Connections.ElementAt(j).From != nc)
+                {
+                    List<Node> tmp2 = PreviousQuestion(nc.Node.Connections.ElementAt(j).From, ref i);
+                    foreach(Node n2 in tmp2)
+                    {
+                        if(!(tmp.Contains(n2)))
+                        {
+                            tmp.Add(n2);
+                        }
+                    }
+                }
+            }
+            return tmp;
+        }
+
+        private string addEvent(string e,string S)
+        {
+            if(S.Substring(S.IndexOf("Events=")+7,1) == ",") return S.Insert(S.IndexOf("Events=") + 7, "(\"" + e + "\")");
+            return S.Insert(S.IndexOf("Events=(") + 8, "\"" + e + "\",");
+        }
+
+        private string addCondition(string c, string S)
+        {
+            if (S.Substring(S.IndexOf("Conditions=") + 11, 1) == ",") return S.Insert(S.IndexOf("Conditions=") + 11, "(\"" + c + "\")");
+            return S.Insert(S.IndexOf("Conditions=(") + 12,"\"" + c + "\",");
+        }
+
+        private string Run2(Node n)
+        {
+            Regex regex = new Regex(@"
+    \{                    # Match (
+    (
+        [^{}]+            # all chars except ()
+        | (?<Level>\{)    # or if ( then Level += 1
+        | (?<-Level>\})   # or if ) then Level -= 1
+    )+                    # Repeat (to go from inside to outside)
+    (?(Level)(?!))        # zero-width negative lookahead assertion
+    \}                    # Match )", RegexOptions.IgnorePatternWhitespace);
+            List<nodeStructure> L = new List<nodeStructure>();
+            List<KeyValuePair<int, KeyValuePair<int, string>>> Events = new List<KeyValuePair<int, KeyValuePair<int, string>>>();
+            List<KeyValuePair<int, KeyValuePair<int, string>>> Conditions = new List<KeyValuePair<int, KeyValuePair<int, string>>>();
+
+            string tmp = Run(n, ref L, ref Events, ref Conditions);
+            string tmp2 = " ";
+            List<string> arrayOfQuestions = new List<string>();
+            List<int> indexTable = new List<int>();
+
+
+            foreach(nodeStructure l in L.Reverse<nodeStructure>()) // First pass for Questions
+            {
+                switch(l.Data)
+                {
+                    case "|If":
+                        break;
+                    case "|Event":
+                        break;
+                    default:
+                        arrayOfQuestions.Add("Id=" + l.ID.ToString() + ",QuestionText=\"" + l.Data + "\",Answers=((");
+                        indexTable.Add(l.ID);
+                        for(int i=0;i<l.Answers.Count();i++)
+                        {
+                            if (arrayOfQuestions[arrayOfQuestions.Count - 1].Last() == ')') arrayOfQuestions[arrayOfQuestions.Count - 1] += ",(";
+                            arrayOfQuestions[arrayOfQuestions.Count - 1] += "AnswerText=\"" + l.Answers.ElementAt(i) + "\",NextQuestionId=" + l.itemIDs.ElementAt(i).ToString();
+                            if(l.itemIDs.ElementAt(i) != l.AnswersIDs.ElementAt(i)) arrayOfQuestions[arrayOfQuestions.Count()-1] += "|" + l.AnswersIDs.ElementAt(i).ToString() + ",Events=,Conditions=)";
+                            else arrayOfQuestions[arrayOfQuestions.Count()-1] += ",Events=,Conditions=)";
+                        }
+                        arrayOfQuestions[arrayOfQuestions.Count - 1] += ")";
+                        L.Remove(l);
+                        break;
+                }                
+            }
+            
+           foreach(KeyValuePair<int,KeyValuePair<int,string>> a in Events) //Pour touts events
+            {
+                string tmpS = arrayOfQuestions[indexTable.IndexOf(a.Key)]; // tmpS = Target Question Data 'Gets the NODE'
+
+                string tmpS2 = tmpS.Substring(0, tmpS.IndexOf("NextQuestionId=" + a.Value.Key));
+                tmpS = addEvent(a.Value.Value, tmpS.Substring(tmpS.IndexOf("NextQuestionId=" + a.Value.Key)));
+                tmpS2 += tmpS.Substring(0, tmpS.IndexOf("=" + a.Value.Key)+1) + tmpS.Substring(tmpS.IndexOf("|")+1);
+                arrayOfQuestions[indexTable.IndexOf(a.Key)] = tmpS2;
+            }
+
+            tmp2 = "(";
+            foreach(string s in arrayOfQuestions)
+            {
+                if (tmp2 != "(") tmp2 += ",";
+                tmp2 += "(" + s + ")";
+            }
+            tmp2 += ")";
+
+            return tmp2;
+        }
+
+        private int handleEventsConditions(ref List<KeyValuePair<int,KeyValuePair<int,string>>> Events, ref List<KeyValuePair<int,KeyValuePair<int, string>>> Conditions, Node N,int a,int b)
+        {
+            KeyValuePair<int, string> First;
+            switch(N.Title)
+            {
+                case "If":
+                    First = new KeyValuePair<int, string>(b, ((NodeTextBoxItem)N.Items.ElementAt(0)).Text);
+                    Conditions.Add(new KeyValuePair<int, KeyValuePair<int, string>>(a, First)); // Added the Condition
+                    break;
+                case "Event":
+                    First = new KeyValuePair<int, string>(b, ((NodeDropDownItem)N.Items.ElementAt(0)).Items.ElementAt(((NodeDropDownItem)N.Items.ElementAt(0)).SelectedIndex));
+
+                    if(!(Events.Contains(new KeyValuePair<int, KeyValuePair<int, string>>(a,First)))) Events.Add(new KeyValuePair<int, KeyValuePair<int, string>>(a, First)); // Added the Event
+                    break;
+                default:
+                    return graphControl.Nodes.ToList().IndexOf(N); // End when you find a question
+            }
+
+            if (N.Connections.Last().To.Node != N) // S'il existe une 'suite' (TEST INCORRECT)
+            {
+                handleEventsConditions(ref Events, ref Conditions, N.Connections.Last().To.Node, a, b); //Continue la génération
+            }
+
+            return -1;
+        }
+
+        // Remake Run
+        public List<KeyValuePair<int, KeyValuePair<int, string>>> nodeEvents;
+        public List<KeyValuePair<int, KeyValuePair<int, string>>> nodeConditions;
+
+        private TreeNode Run3(Node n,TreeNode previousQuestion,int previousAnswerID)
+        {
+            TreeNode N = new TreeNode();
+
+            switch(n.Title)
+            {
+                case "If":
+
+                    break;
+                case "Event":
+                    string e = ((NodeDropDownItem)n.Items.ElementAt(0)).Items.ElementAt(((NodeDropDownItem)n.Items.ElementAt(0)).SelectedIndex);
+                    if(n.Items.Count() > 1)
+                    {
+                        NodeTextBoxItem nti = ((NodeTextBoxItem)n.Items.ElementAt(1));
+                        if (nti != null) e += "(" + nti.Text + ")";
+                        else
+                        {
+                            NodeDropDownItem nddi = ((NodeDropDownItem)n.Items.ElementAt(1));
+                            if (nddi != null) e += "("+ nddi.Items.ElementAt(nddi.SelectedIndex) + ")";
+                        }
+                    }
+                    previousQuestion.AddEvent(e,previousAnswerID);
+                    if (n.Connections.Last().To.Node != n) // If it continues
+                    {
+                        return (Run3(n.Connections.Last().To.Node, previousQuestion, previousAnswerID));
+                    }
+                    else return null;
+                    break;
+                default:
+                    N.Question = ((NodeTextBoxItem)n.Items.ElementAt(0)).Text;
+                    for(int i=0;i<n.Connections.Count();i++)//Foreach right connections
+                    {
+                        if(n.Connections.ElementAt(i).To.Node != n) // S'il y a une connection
+                        {
+                            N.ID = graphControl.Nodes.ToList().IndexOf(n);
+                            N.Answers.Add(((NodeTextBoxItem)n.Connections.ElementAt(i).From.Item).Text);    //Adds the answer text
+                            N.AnswersNodes.Add(Run3(n.Connections.ElementAt(i).To.Node,N,n.Items.ToList().IndexOf(n.Connections.ElementAt(i).From.Item)-1));                   //Adds the answer TreeNode
+                        }
+                    }
+                    break;
+            }
+
+            return N;
+        }
+
+        private string Run(Node n, ref List<nodeStructure> L,ref List<KeyValuePair<int, KeyValuePair<int, string>>> Events, ref List<KeyValuePair<int, KeyValuePair<int, string>>> Conditions)
         {
             string tmp = "";
             int close = 0;
             bool noConnections = true;
-            switch(n.Title)
+            nodeStructure nS = new nodeStructure();
+            nS.Answers = new List<string>();
+            nS.AnswersIDs = new List<int>();
+            List<int> index = new List<int>();
+            List<Node> previousNodes = new List<Node>();
+
+            bool alreadyRegistered = false;
+            //CHECK if the node isn't already registered
+            foreach (nodeStructure l in L)
             {
-                case "If":
-                    tmp+="If(" + ((NodeTextBoxItem)n.Items.ElementAt(0).Node.Items.ElementAt(0)).Text + "){";
-                    close = 1;
+                if (graphControl.Nodes.ToList().IndexOf(n) == l.ID)
+                {
+                    alreadyRegistered = true;
                     break;
-                case "Event":
-                    tmp += "[" + ((NodeDropDownItem)n.Items.ElementAt(0).Node.Items.ElementAt(0)).Items.ElementAt(((NodeDropDownItem)n.Items.ElementAt(0).Node.Items.ElementAt(0)).SelectedIndex) + "]";
-                    break;
-                default:
-                    tmp += "{" + ((NodeTextBoxItem)n.Items.ElementAt(0).Node.Items.ElementAt(0)).Text + ":";
-                        close = 1;
-                    break;
+                }
             }
 
-            foreach (NodeItem ni in n.Items)
+            switch (n.Title)
             {
-                foreach (var nc in ni.Output.Connectors)
+                case "If":
+                    break;
+                case "Event":
+                    break;
+                default:
+                    nS.ID = graphControl.Nodes.ToList().IndexOf(n);
+                    nS.Data = ((NodeTextBoxItem)n.Items.ElementAt(0).Node.Items.ElementAt(0)).Text;
+                    nS.Answers = new List<string>();
+                    nS.AnswersIDs = new List<int>();
+                    nS.itemIDs = new List<int>();
+                    for(int i=0;i<n.Connections.Count();i++) // Pour chaque connection
+                    {
+                        var con = n.Connections.ElementAt(i);
+                        if(con.To.Node != n) // Si une connection existe vraiment
+                        {
+                            nS.Answers.Add(((NodeTextBoxItem)con.From.Item).Text);
+                            nS.AnswersIDs.Add(handleEventsConditions(ref Events, ref Conditions, con.To.Node, graphControl.Nodes.ToList().IndexOf(n), n.Items.ToList().IndexOf(con.From.Item)));
+                            nS.itemIDs.Add(n.Items.ToList().IndexOf(con.From.Item));
+                        }
+                    }
+                    close = 1;
+                    break;
+            }
+            if(!alreadyRegistered) L.Add(nS);
+
+            foreach (KeyValuePair<int,KeyValuePair<int,string>> a in Events)
+            {
+                MessageBox.Show(a.Key.ToString() + "/" + a.Value.Key.ToString() + " : " + a.Value.Value);
+            }
+
+            foreach (KeyValuePair<int, KeyValuePair<int, string>> a in Conditions)
+            {
+                MessageBox.Show(a.Key.ToString() + "/" + a.Value.Key.ToString() + " : " + a.Value.Value);
+            }
+
+            for (int i = 0; i < n.Connections.Count(); i++)
+            {
+                var con = n.Connections.ElementAt(i);
+                if (con.To.Node != n)
                 {
                     noConnections = false;
-                    if (close == 1) tmp += ((NodeTextBoxItem)nc.From.Item).Text;
-                    tmp += Run(nc.To.Node);
-                    tmp += ",";
+                    if (close == 1) tmp += ((NodeTextBoxItem)con.From.Item).Text;
+                    tmp += Run(con.To.Node, ref L,ref Events,ref Conditions);
+                    tmp += ","; // N'est pas le dernier
                 }
             }
 
@@ -218,19 +496,22 @@ namespace DialogueCreator3
                     tmp += ","; // N'est pas le dernier
                 }
             }*/
-            if (tmp.Substring(tmp.Length - 1) == ",") tmp = tmp.Substring(0, tmp.Length - 1);
+
+            //TEMPORARY
+            /*if (tmp.Substring(tmp.Length - 1) == ",") tmp = tmp.Substring(0, tmp.Length - 1);
             if (close == 1)
             {
                 if (noConnections) tmp = tmp.Substring(0, tmp.Length - 1); // If it didn't have Elements inside, remove the last char
                 tmp += "}";
-            }
+            }*/
             return tmp;
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
             Preview Prev = new Preview();
-            Prev.Code = Run(BeginNode);
+            Prev.Tree = Run3(BeginNode, null, -1);
+            //Prev.Code = Run2(BeginNode);
             Prev.Show();
         }
 
@@ -252,7 +533,7 @@ namespace DialogueCreator3
             {
                 foreach(string s in url.Split('\n'))
                 {
-                    processLine(s, ref Connections);
+                    if(s != "") processLine(s, ref Connections);
                 }
             }
 
@@ -287,23 +568,23 @@ namespace DialogueCreator3
                 switch (s.Substring(1, s.IndexOf(':') - 1)) // Add the item
                 {
                     case "Label":
-                        NewNode.AddItem(new NodeTextBoxItem(s.Substring(s.IndexOf(':') + 1, (s.IndexOf(',') - s.IndexOf(':') - 1)), (s.Substring(s.IndexOf(',') + 1, 1) == "T"), (s.Substring(s.LastIndexOf(',') + 1, 1) == "T")) { Tag = 31337 });
+                        NewNode.AddItem(new NodeTextBoxItem(s.Substring(s.IndexOf(':') + 1, (s.IndexOf('|') - s.IndexOf(':') - 1)), (s.Substring(s.IndexOf('|') + 1, 1) == "T"), (s.Substring(s.LastIndexOf(',') + 1, 1) == "T")) { Tag = 31337 });
                         break;
                     case "DropDown":
-                        NewNode.AddItem(new NodeDropDownItem(Events, Events.ToList().IndexOf(s.Substring(s.IndexOf(':') + 1, (s.IndexOf(',') - s.IndexOf(':') - 1))), (s.Substring(s.IndexOf(',') + 1, 1) == "T"), (s.Substring(s.LastIndexOf(',') + 1, 1) == "T")) { Tag = 31337 });
+                        NewNode.AddItem(new NodeDropDownItem(Events, Events.ToList().IndexOf(s.Substring(s.IndexOf(':') + 1, (s.IndexOf('|') - s.IndexOf(':') - 1))), (s.Substring(s.IndexOf('|') + 1, 1) == "T"), (s.Substring(s.LastIndexOf(',') + 1, 1) == "T")) { Tag = 31337 });
                         break;
                 }
                 NodeConnector Nc;
-                List<string> test = s.Split(',').ToList();
-                if (test[1].Contains(":"))
+                List<string> test = s.Substring(s.IndexOf('|')).Split(',').ToList();
+                if (test[0].Contains(":"))
                 {
                     Nc = NewNode.Items.Last().Input;
                     //Connections.Add(new KeyValuePair<NodeConnector, KeyValuePair<int, int>>(Nc, new KeyValuePair<int, int>(Int32.Parse(test[1].Substring(test[1].IndexOf(':')+1,test[1].IndexOf('/')- test[1].IndexOf(':')-1)),Int32.Parse(test[1].Substring(test[1].IndexOf('/') + 1)))));
                 }
-                if (test[2].Contains(":"))
+                if (test[1].Contains(":"))
                 {
                     Nc = NewNode.Items.Last().Output;
-                    Connections.Add(new KeyValuePair<NodeConnector, KeyValuePair<int, int>>(Nc, new KeyValuePair<int, int>(Int32.Parse(test[2].Substring(test[2].IndexOf(':') + 1, test[2].IndexOf('/') - test[2].IndexOf(':') - 1)), Int32.Parse(test[2].Substring(test[2].IndexOf('/') + 1).Trim(')')))));
+                    Connections.Add(new KeyValuePair<NodeConnector, KeyValuePair<int, int>>(Nc, new KeyValuePair<int, int>(Int32.Parse(test[1].Substring(test[1].IndexOf(':') + 1, test[1].IndexOf('/') - test[1].IndexOf(':') - 1)), Int32.Parse(test[1].Substring(test[1].IndexOf('/') + 1).Trim(')')))));
                 }
             }
 
@@ -324,7 +605,7 @@ namespace DialogueCreator3
                     NodeDropDownItem DropDown = ni as NodeDropDownItem;
                     if (Label != null) // If the item is a label
                     {
-                        tmp += "(Label:" + Label.Text + "," + ni.Input.Enabled;
+                        tmp += "(Label:" + Label.Text + "|" + ni.Input.Enabled;
                         if (ni.Input.HasConnection)
                         {
                             tmp += ":" + graphControl.Nodes.ToList().IndexOf(ni.Input.Connectors.ElementAt(0).From.Node).ToString() + "/" + ni.Input.Connectors.ElementAt(0).From.Node.Items.ToList().IndexOf(ni.Input.Connectors.ElementAt(0).From.Item).ToString();
@@ -338,7 +619,7 @@ namespace DialogueCreator3
                     }
                     if (DropDown != null)
                     {
-                        tmp += "(DropDown:" + DropDown.Items[DropDown.SelectedIndex] + "," + ni.Input.Enabled;
+                        tmp += "(DropDown:" + DropDown.Items[DropDown.SelectedIndex] + "|" + ni.Input.Enabled;
                         if (ni.Input.HasConnection)
                         {
                             tmp += ":" + graphControl.Nodes.ToList().IndexOf(ni.Input.Connectors.ElementAt(0).From.Node).ToString() + "/" + ni.Input.Connectors.ElementAt(0).From.Node.Items.ToList().IndexOf(ni.Input.Connectors.ElementAt(0).From.Item).ToString();
@@ -378,6 +659,7 @@ namespace DialogueCreator3
                     file.WriteLine(s);
                 }
                 file.Close();
+                FadeTimer.Start();
                 SaveOnline = false;
             }
         }
@@ -411,6 +693,7 @@ namespace DialogueCreator3
             if(OnlineFunction(DialogName, "Insert", s))
             {
                 SaveOnline = true;
+                FadeTimer.Start();
             }
         }
 
@@ -418,11 +701,12 @@ namespace DialogueCreator3
         {
             string url = "http://saoproject.livehost.fr/SAOProject/Dialogs.php?Function=" + Function + "&Data=" + DialogName + "|" + Data;
             if (Data == "") url = url.Remove(url.Length - 1);
+
             using (var Client = new System.Net.WebClient())
             {
                 var response = Client.DownloadString(url);
                 if (response == "Failure") { MessageBox.Show("Failure !"); return false; } // Replace these messagebox by something like a notif later
-                if (response == "Success") return true;
+                if (response == "Success") { if(Function == "Update") FadeTimer.Start(); return true; }
                 if (response == "Name already taken !")
                 {
                     DialogResult dr = MessageBox.Show("This name is already taken !" + Environment.NewLine + "Do you want to overwrite it ?", "Name taken", MessageBoxButtons.YesNo);
@@ -459,7 +743,25 @@ namespace DialogueCreator3
 
         public void openFromOnline(string name)
         {
-            if(name != "") OnlineFunction(name, "Get", "");
+            if (name.Contains("|")) // PB with IDs (Might want to create a custom Run3()
+            {
+                List<string> names = name.Split('|').ToList();
+                string tmpAll = "(";
+                TreeNode Tree;
+                int currentHighestID = 0; // Used to add to each ID sections (and NextQuestionID...) while adding new dialogues
+                foreach (string s in names)
+                {
+                    OnlineFunction(s.Trim('|'), "Get", "");
+                    if (tmpAll != "(") tmpAll += ",";
+                    Tree = Run3(BeginNode, null, -1);
+
+                    tmpAll += Tree.process();
+                }
+                tmpAll = tmpAll + ")";
+
+                Clipboard.SetText(tmpAll);
+            }
+            else if (name != "") OnlineFunction(name, "Get", "");
             textBox1.Text = name;
             SaveOnline = true;
         }
@@ -506,14 +808,14 @@ namespace DialogueCreator3
 
                     break;
                 case "Event":
-                    var node1 = new Node("Event");
-                    node1.AddItem(new NodeDropDownItem(Events, 0, true, true) { Tag = 31337 });
-                    graphControl.AddNode(node1);
-                    node1.Location = graphControl.PointToClient(Cursor.Position);
+                    var TreeNode = new Node("Event");
+                    TreeNode.AddItem(new NodeDropDownItem(Events, 0, true, true) { Tag = 31337 });
+                    graphControl.AddNode(TreeNode);
+                    TreeNode.Location = graphControl.PointToClient(Cursor.Position);
 
-                    var points1 = new PointF[] { node1.Location };
+                    var points1 = new PointF[] { TreeNode.Location };
                     graphControl.inverse_transformation.TransformPoints(points1);
-                    node1.Location = points1[0];
+                    TreeNode.Location = points1[0];
                     break;
                 case "If":
                     var node2 = new Node("If");
@@ -529,5 +831,176 @@ namespace DialogueCreator3
                     break;
             }
         }
+
+        string RemoveBetween(string s, int begin, int end)
+        {
+            Regex regex = new Regex(string.Format("\\{0}.*?\\{1}", s.ElementAt(begin), s.ElementAt(end)));
+            return regex.Replace(s, string.Empty);
+        }
+
+        int opacity = -1;
+
+        private void FadeTimer_Tick(object sender, EventArgs e)
+        {
+            if(opacity < 50)
+            {
+                
+                opacity++;
+                if (opacity == 0)
+                {
+                    FadeTimer.Stop();
+                    panel1.Visible = false;
+                }
+                else panel1.Visible = true;
+            }
+            else
+            {
+                opacity = -1;
+            }
+        }
+
+        private void ExampleForm_Load(object sender, EventArgs e)
+        {
+            FadeTimer.Start();
+            graphControl.NodeAdded += new EventHandler<AcceptNodeEventArgs>(AddedNode);
+        }
+
+        public void AddedNode(object sender, EventArgs e)
+        {
+            Graph.AcceptNodeEventArgs E = (AcceptNodeEventArgs)e;
+            Node n = E.Node;
+            if(n.Title == "Event")
+            {
+                ((NodeDropDownItem)n.Items.ElementAt(0)).SelectionChanged += new EventHandler<AcceptNodeSelectionChangedEventArgs>(DropDownItemChanged);
+            }
+        }
+
+        public void DropDownItemChanged(object sender, EventArgs e)
+        {
+            AcceptNodeSelectionChangedEventArgs E = (AcceptNodeSelectionChangedEventArgs)e;
+            NodeDropDownItem Item = (NodeDropDownItem)sender;
+            Node n = Item.Node;
+
+            switch(Events.ElementAt(E.Index))
+            {
+                case "AcceptQuest":
+                    if(n.Items.Count() == 1) n.AddItem(new NodeTextBoxItem("Quest1"));
+                    break;
+                case "AdvanceQuest":
+                    if (n.Items.Count() == 1) n.AddItem(new NodeTextBoxItem("Quest1"));
+                    break;
+                case "FinishQuest":
+                    if (n.Items.Count() == 1) n.AddItem(new NodeTextBoxItem("Quest1"));
+                    break;
+                case "CustomEvent":
+                    if (n.Items.Count() == 1) n.AddItem(new NodeTextBoxItem("Detail"));
+                    else ((NodeTextBoxItem)n.Items.ElementAt(1)).Text = "Detail";
+                    break;
+                default:
+                    if(n.Items.Count() > 1)
+                    {
+                        n.RemoveItem(n.Items.ElementAt(1));
+                    }
+                    break;
+            }
+        }
+    }
+
+    
+
+    public class TreeNode
+    {
+        public int ID;
+        public string Question;
+        public List<string> Answers;
+        public List<TreeNode> AnswersNodes;
+        public List<List<string>> Events;
+        public List<List<string>> Conditions;
+
+        public TreeNode()
+        {
+            Answers = new List<string>(); AnswersNodes = new List<TreeNode>(); Events = new List<List<string>>(); Conditions = new List<List<string>>();
+        }
+
+        public TreeNode(int i, string Q, List<string> A, List<TreeNode> N, List<List<string>> E, List<List<string>> C)
+        {
+            ID = i; Question = Q; Answers = A; AnswersNodes = N; Events = E; Conditions = C;
+        }
+
+        public void AddEvent(string e, int index)
+        {
+            while (Events.Count() - 1 < index)
+            {
+                Events.Add(new List<string>());
+            }
+            Events.Last().Add(e);
+        }
+
+        public string process()
+        {
+            string ret = "(Id=" + ID.ToString() + ",QuestionText=\"" + Question + "\",Answers=(";
+
+            for (int i = 0; i < Answers.Count(); i++)
+            {
+                ret += "(AnswerText=\"" + Answers.ElementAt(i) + "\",NextQuestionId=";
+                if (AnswersNodes.ElementAt(i) != null) ret += AnswersNodes.ElementAt(i).ID.ToString();
+                ret += ",Events=";
+                if (Events.Count > i)
+                {
+                    ret += "(";
+                    foreach (string s in Events.ElementAt(i))
+                    {
+                        ret += "\"" + s + "\"" + ",";
+                    }
+                    if (ret.ElementAt(ret.Length - 1) == '(') ret = ret.Remove(ret.Length - 1);
+                    else ret = ret.Remove(ret.Length - 1) + ")";
+                }
+                ret += ",Conditions=";
+                if (Conditions.Count > i)
+                {
+                    ret += "(";
+                    foreach (string s in Conditions.ElementAt(i))
+                    {
+                        ret += "\"" + s + "\"" + ",";
+                    }
+                    if (ret.ElementAt(ret.Length - 1) == '(') ret = ret.Remove(ret.Length - 1);
+                    else ret = ret.Remove(ret.Length - 1) + ")";
+                }
+                ret += "),"; // Fin de la réponse
+            }
+            ret = ret.Remove(ret.Length - 1) + ")),";
+
+            foreach (TreeNode n1 in AnswersNodes)
+            {
+                if (n1 != null) ret += n1.process();
+            }
+            if (ret.ElementAt(ret.Length - 1) == ',') ret = ret.Remove(ret.Length - 1);
+            return ret;
+        }
+
+        public void Show()
+        {
+            MessageBox.Show("ID:" + ID.ToString() + ", Question : " + Question);
+            for (int i = 0; i < Answers.Count(); i++)
+            {
+                string tmp = "Answer= " + Answers.ElementAt(i) + " : Events(";
+                if (Events.Count > i)
+                {
+                    foreach (string s in Events.ElementAt(i))
+                    {
+                        tmp += s + ",";
+                    }
+                    tmp = tmp.Substring(0, tmp.Length - 1);
+                }
+                tmp += ")";
+                MessageBox.Show(tmp);
+            }
+
+            foreach (TreeNode n1 in AnswersNodes)
+            {
+                if (n1 != null) n1.Show();
+            }
+        }
+
     }
 }

@@ -16,6 +16,10 @@ namespace DialogueCreator3
         public string Code;
         public Question First;
         public Question Current;
+
+        public TreeNode Tree;
+        public TreeNode CurrentTree;
+
         public Preview()
         {
             InitializeComponent();
@@ -23,7 +27,7 @@ namespace DialogueCreator3
 
         private void RefreshQuestion()
         {
-            QuestionrTxtBox.Text = Current.QuestionText;
+            /*QuestionrTxtBox.Text = Current.QuestionText;
 
             for (int i = 0; i < 5; i++)
             {
@@ -50,30 +54,114 @@ namespace DialogueCreator3
                         else { Answer5Button.Text = Current.QAnswers[i]; Answer5Button.Enabled = true; }
                         break;
                 }
+            }*/
+
+            QuestionrTxtBox.Text = CurrentTree.Question;
+
+            for (int i = 0; i < CurrentTree.Answers.Count(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        if (CurrentTree.Answers.Count() < i + 1) { Answer1Button.Text = ""; Answer1Button.Enabled = false; }
+                        else { Answer1Button.Text = CurrentTree.Answers.ElementAt(i); Answer1Button.Enabled = true; }
+                        break;
+                    case 1:
+                        if (CurrentTree.Answers.Count() < i + 1) { Answer2Button.Text = ""; Answer2Button.Enabled = false; }
+                        else { Answer2Button.Text = CurrentTree.Answers.ElementAt(i); Answer2Button.Enabled = true; }
+                        break;
+                    case 2:
+                        if (CurrentTree.Answers.Count() < i + 1) { Answer3Button.Text = ""; Answer3Button.Enabled = false; }
+                        else { Answer3Button.Text = CurrentTree.Answers.ElementAt(i); Answer3Button.Enabled = true; }
+                        break;
+                    case 3:
+                        if (CurrentTree.Answers.Count() < i + 1) { Answer4Button.Text = ""; Answer4Button.Enabled = false; }
+                        else { Answer4Button.Text = CurrentTree.Answers.ElementAt(i); Answer4Button.Enabled = true; }
+                        break;
+                    case 4:
+                        if (CurrentTree.Answers.Count() < i + 1) { Answer5Button.Text = ""; Answer5Button.Enabled = false; }
+                        else { Answer5Button.Text = CurrentTree.Answers.ElementAt(i); Answer5Button.Enabled = true; }
+                        break;
+                }
             }
+
             SetEvents();
+
+
         }
 
         private void SetEvents()
         {
-            foreach(string s in Current.Events)
+            /*foreach(string s in Current.Events)
             {
                 MessageBox.Show(s);
-            }
+            }*/
         }
 
         private void Preview_Load(object sender, EventArgs e)
         {
-            QuestionrTxtBox.Text = Code;
+            /*QuestionrTxtBox.Text = Code;
 
             First = Current = new Question(Code);
+            RefreshQuestion();*/
+
+            QuestionrTxtBox.Text = Tree.Question;
+            CurrentTree = Tree;
+
             RefreshQuestion();
+        }
+
+        private TreeNode Select(int i)
+        {
+            if (CurrentTree.Events.Count() > i)
+            {
+                foreach (string s in CurrentTree.Events.ElementAt(i))
+                {
+                    MessageBox.Show(s);
+                }
+            }
+
+            if (CurrentTree.AnswersNodes.Count() > i) // Si l'élément existe
+            {
+                return CurrentTree.AnswersNodes.ElementAt(i);
+            }
+            return null;
         }
 
         private void Answer1Button_Click(object sender, EventArgs e)
         {
-            Current = Current.Select(0);
-            RefreshQuestion();
+            //Current = Current.Select(0);
+            CurrentTree = Select(0);
+            if (CurrentTree != null) RefreshQuestion();
+            else this.Close();
+        }
+
+        private void Answer2Button_Click(object sender, EventArgs e)
+        {
+            CurrentTree = Select(1);
+            if (CurrentTree != null) RefreshQuestion();
+            else this.Close();
+        }
+
+        private void Answer3Button_Click(object sender, EventArgs e)
+        {
+            CurrentTree = Select(2);
+            if (CurrentTree != null) RefreshQuestion();
+            else this.Close();
+        }
+
+        private void Answer4Button_Click(object sender, EventArgs e)
+        {
+            CurrentTree = Select(3);
+            if (CurrentTree != null) RefreshQuestion();
+            else this.Close();
+        }
+
+        private void Answer5Button_Click(object sender, EventArgs e)
+        {
+            CurrentTree = Select(4);
+            if (CurrentTree != null) RefreshQuestion();
+            else this.Close();
         }
     }
 

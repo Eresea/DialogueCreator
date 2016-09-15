@@ -69,6 +69,7 @@
             this.Answer2Button.TabIndex = 2;
             this.Answer2Button.Text = "Answer2";
             this.Answer2Button.UseVisualStyleBackColor = false;
+            this.Answer2Button.Click += new System.EventHandler(this.Answer2Button_Click);
             // 
             // Answer3Button
             // 
@@ -80,6 +81,7 @@
             this.Answer3Button.TabIndex = 3;
             this.Answer3Button.Text = "Answer3";
             this.Answer3Button.UseVisualStyleBackColor = false;
+            this.Answer3Button.Click += new System.EventHandler(this.Answer3Button_Click);
             // 
             // Answer4Button
             // 
@@ -91,6 +93,7 @@
             this.Answer4Button.TabIndex = 4;
             this.Answer4Button.Text = "Answer4";
             this.Answer4Button.UseVisualStyleBackColor = false;
+            this.Answer4Button.Click += new System.EventHandler(this.Answer4Button_Click);
             // 
             // Answer5Button
             // 
@@ -102,6 +105,7 @@
             this.Answer5Button.TabIndex = 5;
             this.Answer5Button.Text = "Answer5";
             this.Answer5Button.UseVisualStyleBackColor = false;
+            this.Answer5Button.Click += new System.EventHandler(this.Answer5Button_Click);
             // 
             // QuestionrTxtBox
             // 

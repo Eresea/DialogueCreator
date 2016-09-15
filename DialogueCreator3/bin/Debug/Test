@@ -1,0 +1,4 @@
+Begin:{X=0, Y=149},Graph.Node,Graph.Node|(Label:Hey you !|False,False),(Label:Me ?|False,True:1/0),(Label:No time !|False,True:2/0),(Label:3|False,True),(Label:4|False,True),(Label:5|False,True)
+:{X=248, Y=72},Graph.Node,Graph.Node,Graph.Node|(Label:Yeah you, I need you to find my hammer !|True:0/1,False),(Label:Okay, sure|False,True:3/0),(Label:Sorry, can't do that.|False,True:2/0),(Label:3|False,True),(Label:4|False,True),(Label:5|False,True)
+Event:{X=778, Y=290},Graph.Node,Graph.Node,Graph.Node|(DropDown:Close|True:0/2,True)
+Event:{X=606, Y=97},Graph.Node,Graph.Node|(DropDown:AcceptQuest|True:1/1,True:2/0)

@@ -148,6 +148,18 @@ namespace DialogueCreator3
                 else MessageBox.Show("Error");
             }
         }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            selectedName = "";
+            foreach(ListViewItem lvi in listView1.Items)
+            {
+                selectedName += lvi.Text + "|";
+            }
+            selectedName = selectedName.Remove(selectedName.Length - 1);
+
+            Return(selectedName);
+        }
     }
 
     public static class Extensions

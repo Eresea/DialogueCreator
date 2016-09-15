@@ -124,13 +124,16 @@
   <data name="blueprint-pattern-21" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\blueprint-pattern-2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="DialogBox" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\DialogBox.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="example" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\example.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="blueprint-pattern-22" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\blueprint-pattern-21.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="DialogBox" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\DialogBox.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="save-128" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\save-128.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

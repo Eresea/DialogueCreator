@@ -587,23 +587,6 @@ namespace DialogueCreator3
                 }
             }
 
-            /*if (nbAnswers > 0)
-            {
-                if (selected == 1) gfx.FillRectangle(new SolidBrush(Color.Green), Node1Point);
-                else if(selected == -2) gfx.FillRectangle(new SolidBrush(Color.Yellow), Node1Point);
-                else if (Dragging_Output1) gfx.FillRectangle(new SolidBrush(Color.Blue), Node1Point);
-                else gfx.FillRectangle(new SolidBrush(Color.Red), Node1Point);
-
-                Node1Point.X = 0;
-
-                if (ID != 0)
-                {
-                    if (selected == -1) gfx.FillRectangle(new SolidBrush(Color.Green), Node1Point);
-                    else if (selected == -3) gfx.FillRectangle(new SolidBrush(Color.Yellow), Node1Point);
-                    else if (Dragging_Input) gfx.FillRectangle(new SolidBrush(Color.Blue), Node1Point);
-                    else gfx.FillRectangle(new SolidBrush(Color.Red), Node1Point);
-                }
-            }*/
 
             //gfx.DrawEllipse(new Pen(Color.White, 1.0f), Node1Point);
 

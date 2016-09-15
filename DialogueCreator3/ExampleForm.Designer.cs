@@ -51,8 +51,14 @@
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
             this.graphControl = new Graph.GraphControl();
+            this.FadeTimer = new System.Windows.Forms.Timer(this.components);
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.SavedIcon = new System.Windows.Forms.PictureBox();
+            this.label6 = new System.Windows.Forms.Label();
             this.nodeMenu.SuspendLayout();
             this.menuStrip1.SuspendLayout();
+            this.panel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.SavedIcon)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
@@ -252,11 +258,51 @@
             this.graphControl.TabIndex = 0;
             this.graphControl.Text = "graphControl";
             // 
+            // FadeTimer
+            // 
+            this.FadeTimer.Tick += new System.EventHandler(this.FadeTimer_Tick);
+            // 
+            // panel1
+            // 
+            this.panel1.BackColor = System.Drawing.Color.Transparent;
+            this.panel1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.panel1.Controls.Add(this.SavedIcon);
+            this.panel1.Controls.Add(this.label6);
+            this.panel1.ForeColor = System.Drawing.Color.Black;
+            this.panel1.Location = new System.Drawing.Point(1010, 9);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(93, 32);
+            this.panel1.TabIndex = 11;
+            // 
+            // SavedIcon
+            // 
+            this.SavedIcon.BackgroundImage = global::DialogueCreator3.Properties.Resources.save_128;
+            this.SavedIcon.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.SavedIcon.Dock = System.Windows.Forms.DockStyle.Right;
+            this.SavedIcon.Location = new System.Drawing.Point(61, 0);
+            this.SavedIcon.Name = "SavedIcon";
+            this.SavedIcon.Size = new System.Drawing.Size(32, 32);
+            this.SavedIcon.TabIndex = 0;
+            this.SavedIcon.TabStop = false;
+            // 
+            // label6
+            // 
+            this.label6.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.label6.AutoSize = true;
+            this.label6.Font = new System.Drawing.Font("Source Sans Pro", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label6.Location = new System.Drawing.Point(2, 6);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(51, 20);
+            this.label6.TabIndex = 12;
+            this.label6.Text = "Saved";
+            // 
             // ExampleForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1115, 576);
+            this.Controls.Add(this.panel1);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.menuStrip1);
@@ -272,11 +318,15 @@
             this.KeyPreview = true;
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "ExampleForm";
-            this.Text = "Form1";
+            this.Text = "DialogueCreator";
+            this.Load += new System.EventHandler(this.ExampleForm_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ExampleForm_KeyDown);
             this.nodeMenu.ResumeLayout(false);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
+            this.panel1.ResumeLayout(false);
+            this.panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.SavedIcon)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -305,6 +355,10 @@
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Timer FadeTimer;
+        private System.Windows.Forms.Panel panel1;
+        private System.Windows.Forms.PictureBox SavedIcon;
+        private System.Windows.Forms.Label label6;
     }
 }
 
